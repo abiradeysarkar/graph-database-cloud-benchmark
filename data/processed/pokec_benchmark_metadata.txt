@@ -1,0 +1,8 @@
+Dataset: SNAP soc-Pokec
+Source URL: https://snap.stanford.edu/data/soc-pokec-relationships.txt.gz
+Graph type: Directed
+Benchmark relationships: 200,000
+Benchmark nodes: 297,688
+Sampling method: Deterministic random sampling
+Random seed: 20260820
+SHA-256: 2576637e63e091d0d490df194ad76501021303707db3b1db9795cc6174876805
