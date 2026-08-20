@@ -16,7 +16,10 @@ class CognoDBConnection:
 
         self.driver = GraphDatabase.driver(
             COGNODB_URI,
-            auth=(COGNODB_USERNAME, COGNODB_PASSWORD),
+            auth=(
+                COGNODB_USERNAME,
+                COGNODB_PASSWORD,
+            ),
         )
 
     def verify_connectivity(self):
@@ -25,7 +28,7 @@ class CognoDBConnection:
         self.driver.verify_connectivity()
 
     def execute_query(self, query, parameters=None):
-        """Execute a Cypher query and return the result records."""
+        """Execute a Cypher query and return result records."""
 
         with self.driver.session() as session:
             result = session.run(

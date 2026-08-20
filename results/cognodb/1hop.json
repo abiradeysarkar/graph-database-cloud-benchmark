@@ -1,0 +1,15 @@
+{
+  "database": "CognoDB",
+  "workload": "1-hop traversal",
+  "warmup_iterations": 20,
+  "measured_iterations": 100,
+  "statistics": {
+    "iterations": 100,
+    "min_ms": 253.91616599999622,
+    "max_ms": 366.54654099999107,
+    "mean_ms": 288.73583959999974,
+    "stdev_ms": 30.1458603536701,
+    "p50_ms": 303.01693750000425,
+    "p95_ms": 353.7008816000014
+  }
+}
