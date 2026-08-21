@@ -1,0 +1,16 @@
+{
+  "database": "cognodb",
+  "workload": "mixed_read_write",
+  "concurrency": 1,
+  "duration_seconds": 63.334484874999994,
+  "read_ratio": 0.8,
+  "write_ratio": 0.2,
+  "total_operations": 128,
+  "reads": 104,
+  "writes": 24,
+  "errors": 0,
+  "operations_per_second": 2.021015884989465,
+  "p50_ms": 299.7061039999984,
+  "p95_ms": 436.8679396999985,
+  "mean_ms": 487.07452148437466
+}

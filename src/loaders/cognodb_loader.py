@@ -5,14 +5,131 @@ from pathlib import Path
 from src.connections.cognodb import CognoDBConnection
 
 
-DATASET_FILE = Path(
+USERS_FILE = Path(
+    "data/processed/pokec_benchmark_users.csv"
+)
+
+EDGES_FILE = Path(
     "data/processed/pokec_benchmark_edges.csv"
 )
 
 BATCH_SIZE = 1000
 
 
-def load_batch(tx, edges):
+def load_user_batch(tx, users):
+    """Insert/update one batch of canonical users."""
+
+    query = """
+    UNWIND $users AS user
+
+    MERGE (u:User {id: user.user_id})
+
+    SET u.bucket = user.bucket
+    """
+
+    tx.run(
+        query,
+        users=users,
+    )
+
+
+def load_users(connection):
+    """Load canonical users and their bucket property."""
+
+    if not USERS_FILE.exists():
+        raise FileNotFoundError(
+            f"User dataset not found: {USERS_FILE}"
+        )
+
+    total_users = 0
+    total_batches = 0
+
+    start_time = time.perf_counter()
+
+    with USERS_FILE.open(
+        "r",
+        encoding="utf-8",
+        newline="",
+    ) as file:
+
+        reader = csv.DictReader(file)
+        batch = []
+
+        with connection.driver.session() as session:
+
+            for row in reader:
+
+                batch.append(
+                    {
+                        "user_id": int(row["user_id"]),
+                        "bucket": int(row["bucket"]),
+                    }
+                )
+
+                if len(batch) >= BATCH_SIZE:
+
+                    session.execute_write(
+                        load_user_batch,
+                        batch,
+                    )
+
+                    total_users += len(batch)
+                    total_batches += 1
+                    batch = []
+
+            if batch:
+
+                session.execute_write(
+                    load_user_batch,
+                    batch,
+                )
+
+                total_users += len(batch)
+                total_batches += 1
+
+    elapsed_seconds = (
+        time.perf_counter() - start_time
+    )
+
+    users_per_second = (
+        total_users / elapsed_seconds
+        if elapsed_seconds > 0
+        else 0
+    )
+
+    print()
+    print("CognoDB user ingestion")
+    print("----------------------")
+    print(
+        f"Users loaded          : "
+        f"{total_users:,}"
+    )
+    print(
+        f"Batch size            : "
+        f"{BATCH_SIZE:,}"
+    )
+    print(
+        f"Total batches         : "
+        f"{total_batches:,}"
+    )
+    print(
+        f"Wall-clock time       : "
+        f"{elapsed_seconds:.3f} seconds"
+    )
+    print(
+        f"Users/sec             : "
+        f"{users_per_second:,.2f}"
+    )
+
+    return {
+        "users": total_users,
+        "batches": total_batches,
+        "elapsed_seconds": elapsed_seconds,
+        "users_per_second": users_per_second,
+    }
+
+
+def load_edge_batch(tx, edges):
     """Insert one batch of Pokec relationships."""
 
     query = """
@@ -30,12 +147,12 @@ def load_batch(tx, edges):
     )
 
 
-def load_dataset(connection):
-    """Load the canonical Pokec dataset into CognoDB."""
+def load_edges(connection):
+    """Load the canonical Pokec relationships."""
 
-    if not DATASET_FILE.exists():
+    if not EDGES_FILE.exists():
         raise FileNotFoundError(
-            f"Dataset not found: {DATASET_FILE}"
+            f"Edge dataset not found: {EDGES_FILE}"
         )
 
     total_relationships = 0
@@ -43,7 +160,7 @@ def load_dataset(connection):
 
     start_time = time.perf_counter()
 
-    with DATASET_FILE.open(
+    with EDGES_FILE.open(
         "r",
         encoding="utf-8",
         newline="",
@@ -58,15 +175,19 @@ def load_dataset(connection):
 
                 batch.append(
                     {
-                        "source_id": int(row["source_id"]),
-                        "target_id": int(row["target_id"]),
+                        "source_id": int(
+                            row["source_id"]
+                        ),
+                        "target_id": int(
+                            row["target_id"]
+                        ),
                     }
                 )
 
                 if len(batch) >= BATCH_SIZE:
 
                     session.execute_write(
-                        load_batch,
+                        load_edge_batch,
                         batch,
                     )
 
@@ -75,8 +196,9 @@ def load_dataset(connection):
                     batch = []
 
             if batch:
+
                 session.execute_write(
-                    load_batch,
+                    load_edge_batch,
                     batch,
                 )
 
@@ -94,8 +216,8 @@ def load_dataset(connection):
     )
 
     print()
-    print("CognoDB dataset ingestion")
-    print("-------------------------")
+    print("CognoDB relationship ingestion")
+    print("--------------------------------")
     print(
         f"Relationships loaded : "
         f"{total_relationships:,}"
@@ -121,22 +243,40 @@ def load_dataset(connection):
         "relationships": total_relationships,
         "batches": total_batches,
         "elapsed_seconds": elapsed_seconds,
-        "relationships_per_second": relationships_per_second,
+        "relationships_per_second": (
+            relationships_per_second
+        ),
     }
 
 
+def load_dataset(connection):
+    """Load canonical users followed by relationships."""
+
+    load_users(connection)
+
+    load_edges(connection)
+
+
 def main():
+
     connection = CognoDBConnection()
 
     try:
+
         connection.verify_connectivity()
 
-        print("CognoDB Cloud connectivity: SUCCESS")
-        print("Starting dataset ingestion...")
+        print(
+            "CognoDB Cloud connectivity: SUCCESS"
+        )
+
+        print(
+            "Starting dataset ingestion..."
+        )
 
         load_dataset(connection)
 
     finally:
+
         connection.close()
 
 
