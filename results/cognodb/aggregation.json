@@ -1,0 +1,17 @@
+{
+  "database": "cognodb",
+  "workload": "aggregation",
+  "query": "MATCH (u:User)\nRETURN u.bucket AS bucket, count(u) AS user_count\nORDER BY bucket",
+  "warmup_iterations": 20,
+  "measured_iterations": 100,
+  "result_buckets": 100,
+  "statistics": {
+    "iterations": 100,
+    "min_ms": 765.4738330000015,
+    "max_ms": 1056.2120829999913,
+    "mean_ms": 867.2143358399995,
+    "stdev_ms": 62.47769170454046,
+    "p50_ms": 865.015125499994,
+    "p95_ms": 968.7085541500011
+  }
+}
